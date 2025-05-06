@@ -20,15 +20,15 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     // Load the point cloud data from a CSV file
-    let points = read_point_cloud_from_csv("data/data-1-3.csv").unwrap();
-    let ground_points = ransac_ground_segmentation(
+    let points = read_point_cloud_from_csv("data/data-3-2.csv").unwrap();
+    let (ground_points, _non_ground_points) = ransac_ground_segmentation(
         &points,
         110,
-        0.15,
-    ).0;
+        0.10,
+    );
 
     // Create a RectangleMesh from the points
-    let cell_size = 0.05; // Define the size of each grid cell
+    let cell_size = 0.08; // Define the size of each grid cell
     let rectangle_mesh = RectangleMesh::from_points(&ground_points, cell_size);
     println!("Compute finished with {} grids", rectangle_mesh.vertices.len());
 

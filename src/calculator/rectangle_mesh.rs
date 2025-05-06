@@ -6,7 +6,6 @@ use bevy::render::render_resource::PrimitiveTopology::TriangleList;
 use bevy::render::render_asset::RenderAssetUsages;
 use nalgebra::Point3;
 use crate::prelude::*;
-
 use super::coordinate_transformer::mid360_to_bevy;
 
 pub struct RectangleMesh {
