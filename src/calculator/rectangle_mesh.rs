@@ -5,6 +5,7 @@ use bevy::render::mesh::Indices;
 use bevy::render::render_resource::PrimitiveTopology::TriangleList;
 use bevy::render::render_asset::RenderAssetUsages;
 use nalgebra::Point3;
+use colorous::PLASMA;
 use crate::prelude::*;
 use super::coordinate_transformer::mid360_to_bevy;
 
@@ -124,12 +125,12 @@ impl RectangleMesh {
 
         for normal in &normals {
             let slope_rad = normal.z.clamp(-1.0, 1.0).acos();
-            let norm_slope = (slope_rad / std::f32::consts::FRAC_PI_2).clamp(0.0, 1.0);
-            let color = [
-                norm_slope,         // Red: steeper slope
-                0.2,                // Green fixed
-                1.0 - norm_slope,   // Blue: flatter slope
-                1.0,                // Alpha
+            let col = PLASMA.eval_continuous((slope_rad as f64).clamp(0.0, 1.0));
+            let color: [f32; 4] = [
+                col.r as f32 / 255.0,         // Red
+                col.g as f32 / 255.0,         // Green
+                col.b as f32 / 255.0,         // Blue
+                1.0,                  // Alpha
             ];
             colors.push(color);
         }
@@ -201,7 +202,7 @@ impl RectangleMesh {
                 Vec3::new(converted.x, converted.y, converted.z)
             })
             .collect();
-    
+
         // Insert the transformed vertices, normals, and colors into the mesh
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, transformed_vertices);
         mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, transformed_normals);

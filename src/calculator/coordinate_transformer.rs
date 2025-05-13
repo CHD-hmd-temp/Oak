@@ -11,16 +11,18 @@ pub fn mid360_to_bevy(
     );
 }
 
+use crate::config::OakConfig;
 pub fn transform_to_normal_position(
     x: f32,
     y: f32,
     z: f32,
+    oak_config: &OakConfig,
 ) -> nalgebra::Point3<f32> {
     // 第一步：绕 X 轴旋转 180 度（倒置）
     let inverted = nalgebra::Point3::new(x, -y, -z);
     
     // 第二步：绕 Y 轴旋转 -30 度（修正 x 轴倾斜）
-    rotate_point_around_y_axis(&inverted, -15.0_f32.to_radians())
+    rotate_point_around_y_axis(&inverted, oak_config.process_config.sensor_angle.to_radians())
 }
 
 fn rotate_point_around_y_axis(

@@ -2,11 +2,12 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 use crate::prelude::LaserPoint;
+use crate::config::OakConfig;
 use crate::calculator::coordinate_transformer::{mid360_to_bevy, transform_to_normal_position};
 use nalgebra::Point3;
 
 // Read PointCloud from a csv file
-pub fn read_point_cloud_from_csv<P: AsRef<Path>>(file_path: P) -> io::Result<Vec<LaserPoint>> {
+pub fn read_point_cloud_from_csv<P: AsRef<Path>>(file_path: P, oak_config: &OakConfig) -> io::Result<Vec<LaserPoint>> {
     let file = File::open(file_path)?;
     let reader = io::BufReader::new(file);
     let mut points = Vec::new();
@@ -37,7 +38,7 @@ pub fn read_point_cloud_from_csv<P: AsRef<Path>>(file_path: P) -> io::Result<Vec
             if point.x >= bound_min.x && point.x <= bound_max.x &&
                point.y >= bound_min.y && point.y <= bound_max.y &&
                point.z >= bound_min.z && point.z <= bound_max.z {
-                let point = transform_to_normal_position(x, y, z);
+                let point = transform_to_normal_position(x, y, z, &oak_config);
                 //let point = mid360_to_bevy(point.x, point.y, point.z);
                 points.push(LaserPoint::new(point, reflectivity));
             }
