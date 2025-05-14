@@ -12,6 +12,8 @@ pub struct ProcessConfig {
     pub point_cloud_path: String,
     pub origin_data_path: String,
     pub sensor_angle: f32,  // X轴方向仰角，角度值
+    pub mesh_vertex_threshold: f32, // 网格顶点比较阈值
+    pub mesh_normal_threshold: f32, // 网格法线比较阈值
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -21,6 +23,9 @@ pub struct RenderConfig {
     pub cam_x: f32,
     pub cam_y: f32,
     pub cam_z: f32,
+    pub look_at_x: f32,
+    pub look_at_y: f32,
+    pub look_at_z: f32,
 }
 
 impl Default for OakConfig {
@@ -30,6 +35,8 @@ impl Default for OakConfig {
                 point_cloud_path: "data/data-1.csv".to_string(),
                 origin_data_path: "data/data-1.csv".to_string(),
                 sensor_angle: 30.0,
+                mesh_vertex_threshold: 0.09,
+                mesh_normal_threshold: 0.05,
             },
             render_config: RenderConfig {
                 width: 800,
@@ -37,6 +44,9 @@ impl Default for OakConfig {
                 cam_x: 0.0,
                 cam_y: 4.0,
                 cam_z: 4.0,
+                look_at_x: 0.0,
+                look_at_y: 0.0,
+                look_at_z: 0.0,
             },
         }
     }

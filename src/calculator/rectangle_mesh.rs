@@ -11,10 +11,10 @@ use super::coordinate_transformer::mid360_to_bevy;
 
 pub struct RectangleMesh {
     pub cell_size: f32,
-    pub vertices: Vec<Vec3>,
-    pub indices: Vec<u32>,
-    pub normals: Vec<Vec3>,
-    pub colors: Vec<[f32; 4]>,
+    pub vertices: Vec<Vec3>,    // Vertices of the mesh
+    pub indices: Vec<u32>,      // Indices for the vertices
+    pub normals: Vec<Vec3>,     // Normals for each vertex
+    pub colors: Vec<[f32; 4]>,  // RGBA colors
 }
 
 impl RectangleMesh {
@@ -34,19 +34,19 @@ impl RectangleMesh {
 
         let bound_min = Point3::new(0.5, -1.5, -2.0);
         let bound_max = Point3::new(2.5, 1.5, 2.0);
-        let mut min_x: f32 = bound_min.x;
-        let mut min_y: f32 = bound_min.y;
-        let mut max_x: f32 = bound_max.x;
-        let mut max_y: f32 = bound_max.y;
+        // let mut min_x: f32 = bound_min.x;
+        // let mut min_y: f32 = bound_min.y;
+        // let mut max_x: f32 = bound_max.x;
+        // let mut max_y: f32 = bound_max.y;
 
         for point in points {
             let x = (point.coordinate.x / cell_size).floor() as i32;
             let y = (point.coordinate.y / cell_size).floor() as i32;
 
-            min_x = min_x.min(point.coordinate.x);
-            min_y = min_y.min(point.coordinate.y);
-            max_x = max_x.max(point.coordinate.x);
-            max_y = max_y.max(point.coordinate.y);
+            // min_x = min_x.min(point.coordinate.x);
+            // min_y = min_y.min(point.coordinate.y);
+            // max_x = max_x.max(point.coordinate.x);
+            // max_y = max_y.max(point.coordinate.y);
 
             grid.entry((x, y)).or_insert_with(Vec::new).push(point);
         }
@@ -60,10 +60,15 @@ impl RectangleMesh {
             }
         }
 
-        let x_min = ((min_x / cell_size).floor() as i32).clamp(-1000, 1000);
-        let y_min = ((min_y / cell_size).floor() as i32).clamp(-1000, 1000);
-        let x_max = ((max_x / cell_size).ceil() as i32).clamp(-1000, 1000);
-        let y_max = ((max_y / cell_size).ceil() as i32).clamp(-1000, 1000);
+        // let x_min = ((min_x / cell_size).floor() as i32).clamp(-1000, 1000);
+        // let y_min = ((min_y / cell_size).floor() as i32).clamp(-1000, 1000);
+        // let x_max = ((max_x / cell_size).ceil() as i32).clamp(-1000, 1000);
+        // let y_max = ((max_y / cell_size).ceil() as i32).clamp(-1000, 1000);
+
+        let x_min = ((bound_min.x / cell_size).floor() as i32).clamp(-1000, 1000);
+        let y_min = ((bound_min.y / cell_size).floor() as i32).clamp(-1000, 1000);
+        let x_max = ((bound_max.x / cell_size).ceil() as i32).clamp(-1000, 1000);
+        let y_max = ((bound_max.y / cell_size).ceil() as i32).clamp(-1000, 1000);
 
         let mut vertices = Vec::new();
         let mut indices = Vec::new();
@@ -210,5 +215,35 @@ impl RectangleMesh {
         mesh.insert_indices(Indices::U32(self.indices.clone()));
     
         mesh
+    }
+}
+
+pub fn compare_rectangle_mesh(
+    rectangle_mesh: &mut RectangleMesh,
+    origin_rectangle_mesh: &mut RectangleMesh,
+    oak_config: &crate::config::OakConfig,
+) {
+    // Compare vertices and normals
+    for (i, vertex) in rectangle_mesh.vertices.iter().enumerate() {
+        if i < origin_rectangle_mesh.vertices.len() {
+            let origin_vertex = &origin_rectangle_mesh.vertices[i];
+            let d = (vertex.x - origin_vertex.x).powi(2) * 0.5
+                + (vertex.y - origin_vertex.y).powi(2) * 0.5
+                + (vertex.z - origin_vertex.z).powi(2);
+            if d > oak_config.process_config.mesh_vertex_threshold {
+                // Cross product magnitude deviation
+                let origin_normal = &origin_rectangle_mesh.normals[i];
+                let normal = &rectangle_mesh.normals[i];
+                let cross_product = Vec3::new(
+                    normal.y * origin_normal.z - normal.z * origin_normal.y,
+                    normal.z * origin_normal.x - normal.x * origin_normal.z,
+                    normal.x * origin_normal.y - normal.y * origin_normal.x,
+                );
+                let cross_product_magnitude = cross_product.length();
+                if cross_product_magnitude > oak_config.process_config.mesh_normal_threshold {
+                    rectangle_mesh.colors[i] = [1.0, 0.0, 0.0, 1.0]; // Red color for significant deviation
+                }
+            }
+        }
     }
 }

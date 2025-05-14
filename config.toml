@@ -1,11 +1,16 @@
 [process_config]
-point_cloud_path = "H:/Project/Scanner/src/oak/data/data-1-3.csv"
-origin_data_path = "H:/Project/Scanner/src/oak/data/data_1.csv"
-sensor_angle = 50.0
+point_cloud_path = "H:/Project/Scanner/src/oak/data/data-3-2.csv"
+origin_data_path = "H:/Project/Scanner/src/oak/data/data-3.csv"
+sensor_angle = 0.0
+mesh_vertex_threshold = 1.8
+mesh_normal_threshold = 0.09
 
 [render_config]
 width = 800
 height = 500
-cam_x = -2.0
-cam_y = -1.0
-cam_z = -2.8
+cam_x = 1.8
+cam_y = 0.5
+cam_z = 0.5
+look_at_x = 0.6
+look_at_y = -0.9
+look_at_z = -1.2

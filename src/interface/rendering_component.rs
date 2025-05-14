@@ -20,7 +20,7 @@ use bevy_image_export::{
 };
 use crate::calculator::point_filter::ransac_ground_segmentation;
 use crate::data_reader::read_from_file::read_point_cloud_from_csv;
-use crate::calculator::rectangle_mesh::RectangleMesh;
+use crate::calculator::rectangle_mesh::{RectangleMesh, compare_rectangle_mesh};
 
 pub fn run_bevy(oak_config: crate::config::OakConfig) {
     let export_plugin = ImageExportPlugin::default();
@@ -98,22 +98,39 @@ fn setup(
     };
 
     // Load the point cloud data from a CSV file
-    let points = read_point_cloud_from_csv("data/data-1-1.csv", &oak_config).unwrap();
+    let points = read_point_cloud_from_csv(&oak_config.process_config.point_cloud_path, &oak_config).unwrap();
     let (ground_points, _non_ground_points) = ransac_ground_segmentation(
         &points,
         110,
         0.10,
     );
 
+    // Load original data from a CSV file
+    let origin_points = read_point_cloud_from_csv(&oak_config.process_config.origin_data_path, &oak_config).unwrap();
+    let (origin_ground_points, _origin_non_ground_points) = ransac_ground_segmentation(
+        &origin_points,
+        110,
+        0.10,
+    );
+
     // Create a RectangleMesh from the points
     let cell_size = 0.08; // Define the size of each grid cell
-    let rectangle_mesh = RectangleMesh::from_points(&ground_points, cell_size);
+    let mut rectangle_mesh = RectangleMesh::from_points(&ground_points, cell_size);
     println!("Compute finished with {} grids", rectangle_mesh.vertices.len());
+
+    // Create a mesh from the original points
+    let mut origin_rectangle_mesh = RectangleMesh::from_points(&origin_ground_points, cell_size);
+    println!("Compute finished with {} grids", origin_rectangle_mesh.vertices.len());
+
+    // Compare the two meshes
+    compare_rectangle_mesh(&mut rectangle_mesh, &mut origin_rectangle_mesh, &oak_config);
 
     // Create a mesh from the RectangleMesh
     let mesh = rectangle_mesh.to_bevy_mesh();
+    //let origin_mesh = origin_rectangle_mesh.to_bevy_mesh();
 
     let mesh_handle = meshes.add(mesh.clone());
+    //let origin_mesh_handle = meshes.add(origin_mesh);
     let material_handle = materials.add(
         StandardMaterial {
             ..default()
@@ -126,6 +143,12 @@ fn setup(
         Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
     ));
 
+    // commands.spawn((
+    //     Mesh3d(origin_mesh_handle.clone()),
+    //     MeshMaterial3d(material_handle.clone()),
+    //     Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+    // ));
+
     // Add a camera
     // 点云旋转时由于为绕坐标原点旋转，所以此时点云包围盒位于[(), ()]
     commands.spawn((
@@ -134,7 +157,11 @@ fn setup(
             oak_config.render_config.cam_x,
             oak_config.render_config.cam_y,
             oak_config.render_config.cam_z,
-        ).looking_at(Vec3::new(0.5, -2.5, 1.7), Vec3::Y),
+        ).looking_at(Vec3::new(
+            oak_config.render_config.look_at_x,
+            oak_config.render_config.look_at_y,
+            oak_config.render_config.look_at_z,
+        ), Vec3::Y),
     ))
     .with_child((
         Camera3d::default(),
