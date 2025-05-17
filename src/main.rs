@@ -16,7 +16,7 @@ fn main() {
     };
 
     // Run the Bevy app
-    interface::rendering_component::run_bevy(oak_config.clone());
+    interface::render_with_screencapture::run_bevy(oak_config.clone());
 }
 
 #[allow(dead_code)]

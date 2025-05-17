@@ -2,8 +2,8 @@
 point_cloud_path = "H:/Project/Scanner/src/oak/data/data-3-2.csv"
 origin_data_path = "H:/Project/Scanner/src/oak/data/data-3.csv"
 sensor_angle = 0.0
-mesh_vertex_threshold = 1.8
-mesh_normal_threshold = 0.09
+mesh_vertex_threshold = 1.3
+mesh_normal_threshold = 0.04
 
 [render_config]
 width = 800

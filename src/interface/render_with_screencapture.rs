@@ -1,105 +1,70 @@
-use bevy::prelude::*;
-use bevy::render::render_resource::{
-    Extent3d,
-    TextureDescriptor,
-    TextureDimension,
-    TextureFormat,
-    TextureUsages,
-};
-use bevy::render::{
-    camera::RenderTarget,
-    RenderPlugin,
+use bevy::{
+    prelude::*,
+    render::view::screenshot::{save_to_disk, Capturing, Screenshot},
+    window::SystemCursorIcon,
+    winit::cursor::CursorIcon,
 };
 use bevy_flycam::prelude::*;
-use bevy_image_export::{
-    self,
-    ImageExportPlugin,
-    ImageExportSource,
-    ImageExport,
-    ImageExportSettings
-};
 use crate::calculator::point_filter::ransac_ground_segmentation;
 use crate::data_reader::read_from_file::read_point_cloud_from_csv;
 use crate::calculator::rectangle_mesh::{RectangleMesh, compare_rectangle_mesh};
 
-#[derive(Component)]
-pub struct ExportBundleMarker;
-
 pub fn run_bevy(oak_config: crate::config::OakConfig) {
-    let export_plugin = ImageExportPlugin::default();
-    let export_thread = export_plugin.threads.clone();
-
     App::new()
-        .add_plugins((
-            DefaultPlugins
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        resolution: (
-                            oak_config.render_config.width as f32,
-                            oak_config.render_config.height as f32,
-                        ).into(),
-                        ..default()
-                    }),
-                    ..default()
-                })
-                .set(RenderPlugin {
-                    synchronous_pipeline_compilation: true,
-                    ..default()
-                }),
-            export_plugin,
-        ))
+        .add_plugins(DefaultPlugins)
         .add_plugins(NoCameraPlayerPlugin)
         .insert_resource(oak_config.clone())
         .add_systems(Startup,
             |commands: Commands,
             meshes: ResMut<Assets<Mesh>>,
             materials: ResMut<Assets<StandardMaterial>>,
-            export_sources: ResMut<Assets<ImageExportSource>>,
-            images: ResMut<Assets<Image>>,
             oak_config: Res<crate::config::OakConfig>|
-                setup(commands, materials, meshes, export_sources, images, oak_config.clone())
+            setup(commands, materials, meshes, oak_config.clone())
         )
+        .add_systems(Update, (screenshot_on_q, screenshot_saving))
         .add_systems(Update, darw_gizmos)
         .run();
-
-    export_thread.finish();
 }
 
+fn screenshot_on_q(
+    mut commands: Commands,
+    input: Res<ButtonInput<KeyCode>>,
+    mut counter: Local<u32>,
+) {
+    if input.just_pressed(KeyCode::KeyQ) {
+        let path = format!("./out/screenshot-{}.png", *counter);
+        *counter += 1;
+        commands
+            .spawn(Screenshot::primary_window())
+            .observe(save_to_disk(path));
+    }
+}
+
+fn screenshot_saving(
+    mut commands: Commands,
+    screenshot_saving: Query<Entity, With<Capturing>>,
+    window: Single<Entity, With<Window>>,
+) {
+    match screenshot_saving.iter().count() {
+        0 => {
+            commands.entity(*window).remove::<CursorIcon>();
+        }
+        x if x > 0 => {
+            commands
+                .entity(*window)
+                .insert(CursorIcon::from(SystemCursorIcon::Progress));
+        }
+        _ => {}
+    }
+}
+
+/// set up a simple 3D scene
 fn setup(
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut export_sources: ResMut<Assets<ImageExportSource>>,
-    mut images: ResMut<Assets<Image>>,
     oak_config: crate::config::OakConfig
 ) {
-    // Set up the camera and rendering configuration
-    let output_texture_handle = {
-        let size = Extent3d {
-            width: oak_config.render_config.width,
-            height: oak_config.render_config.height,
-            ..default()
-        };
-        let mut export_texture = Image {
-            texture_descriptor: TextureDescriptor {
-                label: None,
-                size,
-                dimension: TextureDimension::D2,
-                format: TextureFormat::Rgba8UnormSrgb,
-                mip_level_count: 1,
-                sample_count: 1,
-                usage: TextureUsages::COPY_DST
-                    | TextureUsages::COPY_SRC
-                    | TextureUsages::RENDER_ATTACHMENT,
-                view_formats: &[],
-            },
-            ..default()
-        };
-        export_texture.resize(size);
-
-        images.add(export_texture)
-    };
-
     // Load the point cloud data from a CSV file
     let points = read_point_cloud_from_csv(&oak_config.process_config.point_cloud_path, &oak_config).unwrap();
     let (ground_points, _non_ground_points) = ransac_ground_segmentation(
@@ -165,14 +130,7 @@ fn setup(
             oak_config.render_config.look_at_y,
             oak_config.render_config.look_at_z,
         ), Vec3::Y),
-    ))
-    .with_child((
-        Camera3d::default(),
-        Camera {
-            // Connect the output texture to a camera as a RenderTarget.
-            target: RenderTarget::Image(output_texture_handle.clone()),
-            ..default()
-        },
+        FlyCam
     ));
 
     // Add a light source
@@ -187,14 +145,13 @@ fn setup(
         Transform::from_xyz(8.0, 16.0, 8.0),
     ));
 
-    // Spawn the ImageExport component to initiate the export of the output texture.
     commands.spawn((
-        ImageExport(export_sources.add(output_texture_handle)),
-        ImageExportSettings {
-            // Frames will be saved to "./out/[#####].png".
-            output_dir: "out".into(),
-            // Choose "exr" for HDR renders.
-            extension: "png".into(),
+        Text::new("Press <Q> to save a screenshot to disk"),
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(12.0),
+            left: Val::Px(12.0),
+            ..default()
         },
     ));
 }
