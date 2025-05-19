@@ -1,6 +1,8 @@
 use bevy::ecs::system::Resource;
 use serde::{Deserialize, Serialize};
+use pyo3::prelude::*;
 
+#[pyclass]
 #[derive(Serialize, Deserialize, Debug, Resource, Clone)]
 pub struct OakConfig {
     pub process_config: ProcessConfig,

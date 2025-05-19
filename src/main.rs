@@ -3,6 +3,7 @@ mod data_reader;
 mod calculator;
 mod interface;
 mod config;
+mod python_api;
 
 fn main() {
     // Load the configuration
