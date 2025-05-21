@@ -10,6 +10,10 @@ use crate::data_reader::read_from_file::read_point_cloud_from_csv;
 use crate::calculator::rectangle_mesh::{RectangleMesh, compare_rectangle_mesh};
 
 pub fn run_bevy(oak_config: crate::config::OakConfig) {
+    // Check if out directory exists, if not create it
+    std::fs::create_dir_all("out").unwrap_or_else(|_| {
+        eprintln!("Failed to create out directory");
+    });
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(NoCameraPlayerPlugin)
@@ -32,7 +36,7 @@ fn screenshot_on_q(
     mut counter: Local<u32>,
 ) {
     if input.just_pressed(KeyCode::KeyQ) {
-        let path = format!("./out/screenshot-{}.png", *counter);
+        let path = format!("./out/screenshot.png");
         *counter += 1;
         commands
             .spawn(Screenshot::primary_window())
